@@ -81,6 +81,44 @@ async def list_notes_in_folder(folder_id: str, limit: int = 10, page: int = 1) -
     return result.get("items", [])
 
 @mcp.tool()
+async def list_todos_in_folder(folder_id: str, limit: int = 10, page: int = 1, allow_completed: bool = False) -> List[Dict[str, Any]]:
+    """
+    List todos inside a specific folder (notebook).
+
+    This tool retrieves todos from a specific folder. By default, it returns only incomplete todos.
+    It uses Joplin's search functionality to filter by notebook and todo status.
+
+    Args:
+        folder_id: The unique identifier of the folder (notebook).
+        limit: The maximum number of todos to return (default: 10).
+        page: The page number to retrieve (default: 1).
+        allow_completed: If True, returns both complete and incomplete todos.
+                         If False (default), returns only incomplete todos.
+
+    Returns:
+        A list of dictionaries representing the todos in the folder.
+    """
+    # First, get the folder title to use in the search query
+    folder = await _make_request("GET", f"/folders/{folder_id}")
+    title = folder.get("title", "")
+
+    # Escape quotes in title for the search query
+    safe_title = title.replace('"', '\\"')
+
+    query = f'notebook:"{safe_title}" type:todo'
+    if not allow_completed:
+        query += " iscompleted:0"
+
+    params = {
+        "query": query,
+        "limit": limit,
+        "page": page,
+        "fields": "id,title,updated_time,created_time,parent_id,is_todo,todo_completed"
+    }
+    result = await _make_request("GET", "/search", params=params)
+    return result.get("items", [])
+
+@mcp.tool()
 async def get_note(note_id: str) -> Dict[str, Any]:
     """
     Retrieve the full content and metadata of a specific note.

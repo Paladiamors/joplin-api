@@ -70,6 +70,74 @@ class TestJoplinMCP(unittest.TestCase):
                 json=None
             )
 
+    def test_list_todos_in_folder_incomplete(self):
+        with patch("httpx.AsyncClient.request") as mock_request:
+            # Setup mock responses for folder fetch and search
+            async def side_effect(method, url, params=None, json=None):
+                if url == "http://localhost:41184/folders/folder123":
+                    mock_resp = MagicMock()
+                    mock_resp.raise_for_status.return_value = None
+                    mock_resp.json.return_value = {"title": "Test Folder"}
+                    return mock_resp
+                elif url == "http://localhost:41184/search":
+                    mock_resp = MagicMock()
+                    mock_resp.raise_for_status.return_value = None
+                    mock_resp.json.return_value = {"items": [{"id": "todo1", "title": "Incomplete Todo"}]}
+                    return mock_resp
+                return MagicMock()
+
+            mock_request.side_effect = side_effect
+
+            # Call the function (default: allow_completed=False)
+            result = asyncio.run(joplin_mcp.list_todos_in_folder(folder_id="folder123", limit=5, page=1))
+
+            # Verify
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0]["title"], "Incomplete Todo")
+
+            # Check calls
+            # We expect two calls: one for folder info, one for search
+            # Since mock_request is a mock object, we can inspect call_args_list
+            self.assertEqual(mock_request.call_count, 2)
+
+            # Verify search call arguments
+            search_call = mock_request.call_args_list[1]
+            self.assertEqual(search_call[0][0], "GET")
+            self.assertEqual(search_call[0][1], "http://localhost:41184/search")
+            # Query should include iscompleted:0
+            self.assertIn('notebook:"Test Folder"', search_call[1]['params']['query'])
+            self.assertIn('type:todo', search_call[1]['params']['query'])
+            self.assertIn('iscompleted:0', search_call[1]['params']['query'])
+
+    def test_list_todos_in_folder_all(self):
+        with patch("httpx.AsyncClient.request") as mock_request:
+            # Setup mock responses
+            async def side_effect(method, url, params=None, json=None):
+                if url == "http://localhost:41184/folders/folder123":
+                    mock_resp = MagicMock()
+                    mock_resp.raise_for_status.return_value = None
+                    mock_resp.json.return_value = {"title": "Test Folder"}
+                    return mock_resp
+                elif url == "http://localhost:41184/search":
+                    mock_resp = MagicMock()
+                    mock_resp.raise_for_status.return_value = None
+                    mock_resp.json.return_value = {"items": [{"id": "todo1", "title": "Incomplete Todo"}]}
+                    return mock_resp
+                return MagicMock()
+
+            mock_request.side_effect = side_effect
+
+            # Call the function with allow_completed=True
+            result = asyncio.run(joplin_mcp.list_todos_in_folder(folder_id="folder123", allow_completed=True))
+
+            # Verify
+            self.assertEqual(mock_request.call_count, 2)
+            search_call = mock_request.call_args_list[1]
+            # Query should NOT include iscompleted:0
+            self.assertIn('notebook:"Test Folder"', search_call[1]['params']['query'])
+            self.assertIn('type:todo', search_call[1]['params']['query'])
+            self.assertNotIn('iscompleted:0', search_call[1]['params']['query'])
+
     def test_get_note(self):
         with patch("httpx.AsyncClient.request") as mock_request:
             mock_response = MagicMock()
