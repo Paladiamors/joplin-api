@@ -146,7 +146,7 @@ async def get_note(note_id: str) -> Dict[str, Any]:
     return await _make_request("GET", f"/notes/{note_id}", params=params)
 
 @mcp.tool()
-async def create_note(title: str, body: str, parent_id: Optional[str] = None) -> Dict[str, Any]:
+async def create_note(title: str, body: str, parent_id: Optional[str] = None, is_todo: bool = False) -> Dict[str, Any]:
     """
     Create a new note in Joplin.
 
@@ -158,13 +158,15 @@ async def create_note(title: str, body: str, parent_id: Optional[str] = None) ->
         body: The body content of the note in Markdown format.
         parent_id: The ID of the notebook (folder) where the note should be created.
                    If not provided, it will be placed in the default notebook.
+        is_todo: If True, create the note as a todo item (default: False).
 
     Returns:
         A dictionary containing the metadata of the created note, including its new ID.
     """
     data = {
         "title": title,
-        "body": body
+        "body": body,
+        "is_todo": 1 if is_todo else 0
     }
     if parent_id:
         data["parent_id"] = parent_id
