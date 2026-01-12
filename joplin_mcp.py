@@ -135,11 +135,20 @@ async def search_notes(query: str, limit: int = 10, page: int = 1) -> List[Dict[
     return result.get("items", [])
 
 @mcp.tool()
-async def list_folders() -> List[Dict[str, Any]]:
+async def list_folders(limit: int = 10, page: int = 1) -> List[Dict[str, Any]]:
     """
     List all folders (notebooks).
+
+    Args:
+        limit: Number of folders to return (default 10).
+        page: Page number (default 1).
     """
-    result = await _make_request("GET", "/folders")
+    params = {
+        "limit": limit,
+        "page": page,
+        "fields": "id,title,updated_time,created_time,parent_id"
+    }
+    result = await _make_request("GET", "/folders", params=params)
     return result.get("items", [])
 
 if __name__ == "__main__":

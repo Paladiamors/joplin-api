@@ -4,11 +4,13 @@ This is a Model Context Protocol (MCP) server that connects to your local Joplin
 
 ## Features
 
-- **List Notes**: Retrieve a list of notes with pagination.
-- **Get Note**: Read the full content of a specific note.
+- **List Notes**: Retrieve a list of notes with pagination. Includes metadata like todo status and update time.
+- **Get Note**: Read the full content of a specific note, including todo status and update time.
 - **Create Note**: Create new notes in Joplin.
+- **Update Note**: Update note title, body, and todo completion status.
+- **Delete Note**: Soft or permanently delete notes.
 - **Search Notes**: Search for notes using Joplin's search functionality.
-- **List Folders**: List all notebooks/folders.
+- **List Folders**: List all notebooks/folders with pagination.
 
 ## Prerequisites
 
