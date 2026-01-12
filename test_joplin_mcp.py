@@ -178,7 +178,28 @@ class TestJoplinMCP(unittest.TestCase):
                 "POST",
                 "http://localhost:41184/notes",
                 params={"token": "test-token"},
-                json={"title": "New Note", "body": "Body content"}
+                json={"title": "New Note", "body": "Body content", "is_todo": 0}
+            )
+
+    def test_create_note_as_todo(self):
+        with patch("httpx.AsyncClient.request") as mock_request:
+            mock_response = MagicMock()
+            mock_response.raise_for_status.return_value = None
+            mock_response.json.return_value = {"id": "3", "title": "New Todo", "is_todo": 1}
+
+            async def return_mock_response(*args, **kwargs):
+                return mock_response
+
+            mock_request.side_effect = return_mock_response
+
+            result = asyncio.run(joplin_mcp.create_note(title="New Todo", body="Todo content", is_todo=True))
+
+            self.assertEqual(result["id"], "3")
+            mock_request.assert_called_with(
+                "POST",
+                "http://localhost:41184/notes",
+                params={"token": "test-token"},
+                json={"title": "New Todo", "body": "Todo content", "is_todo": 1}
             )
 
     def test_update_note(self):
