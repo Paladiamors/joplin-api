@@ -56,6 +56,31 @@ async def list_notes(limit: int = 10, page: int = 1) -> List[Dict[str, Any]]:
     return result.get("items", [])
 
 @mcp.tool()
+async def list_notes_in_folder(folder_id: str, limit: int = 10, page: int = 1) -> List[Dict[str, Any]]:
+    """
+    List notes inside a specific folder (notebook).
+
+    This tool retrieves all notes that belong to the specified folder.
+    It returns metadata for each note, similar to `list_notes`.
+
+    Args:
+        folder_id: The unique identifier of the folder (notebook).
+        limit: The maximum number of notes to return (default: 10).
+        page: The page number to retrieve (default: 1).
+
+    Returns:
+        A list of dictionaries representing the notes in the folder, containing metadata
+        such as id, title, timestamps, and todo status.
+    """
+    params = {
+        "limit": limit,
+        "page": page,
+        "fields": "id,title,updated_time,created_time,parent_id,is_todo,todo_completed"
+    }
+    result = await _make_request("GET", f"/folders/{folder_id}/notes", params=params)
+    return result.get("items", [])
+
+@mcp.tool()
 async def get_note(note_id: str) -> Dict[str, Any]:
     """
     Retrieve the full content and metadata of a specific note.

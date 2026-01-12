@@ -42,6 +42,34 @@ class TestJoplinMCP(unittest.TestCase):
                 json=None
             )
 
+    def test_list_notes_in_folder(self):
+        with patch("httpx.AsyncClient.request") as mock_request:
+            # Setup mock response
+            mock_response = MagicMock()
+            mock_response.raise_for_status.return_value = None
+            mock_response.json.return_value = {
+                "items": [{"id": "1", "title": "Folder Note"}],
+                "has_more": False
+            }
+
+            async def return_mock_response(*args, **kwargs):
+                return mock_response
+
+            mock_request.side_effect = return_mock_response
+
+            # Call the function
+            result = asyncio.run(joplin_mcp.list_notes_in_folder(folder_id="folder123", limit=5, page=1))
+
+            # Verify
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0]["title"], "Folder Note")
+            mock_request.assert_called_with(
+                "GET",
+                "http://localhost:41184/folders/folder123/notes",
+                params={"limit": 5, "page": 1, "fields": "id,title,updated_time,created_time,parent_id,is_todo,todo_completed", "token": "test-token"},
+                json=None
+            )
+
     def test_get_note(self):
         with patch("httpx.AsyncClient.request") as mock_request:
             mock_response = MagicMock()

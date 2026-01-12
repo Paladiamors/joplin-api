@@ -11,6 +11,7 @@ This is a Model Context Protocol (MCP) server that connects to your local Joplin
 - **Delete Note**: Soft or permanently delete notes.
 - **Search Notes**: Search for notes using Joplin's search functionality.
 - **List Folders**: List all notebooks/folders with pagination.
+- **List Notes in Folder**: Retrieve all notes within a specific folder.
 
 ## Prerequisites
 
