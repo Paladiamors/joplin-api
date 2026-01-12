@@ -27,11 +27,25 @@ async def _make_request(method: str, endpoint: str, params: Optional[Dict] = Non
 @mcp.tool()
 async def list_notes(limit: int = 10, page: int = 1) -> List[Dict[str, Any]]:
     """
-    List notes from Joplin.
+    List notes from Joplin with pagination.
+
+    This tool retrieves a list of notes from the Joplin database. It returns metadata for each note,
+    including the ID, title, creation/update timestamps, parent notebook ID, and todo status.
+    The body of the note is NOT returned by this tool; use `get_note` for that.
 
     Args:
-        limit: Number of notes to return (default 10).
-        page: Page number (default 1).
+        limit: The maximum number of notes to return in a single request (default: 10).
+        page: The page number to retrieve, starting from 1 (default: 1).
+
+    Returns:
+        A list of dictionaries, where each dictionary represents a note and contains:
+        - id: The unique identifier of the note.
+        - title: The title of the note.
+        - updated_time: Timestamp of the last update.
+        - created_time: Timestamp of creation.
+        - parent_id: The ID of the notebook containing the note.
+        - is_todo: 1 if the note is a todo, 0 otherwise.
+        - todo_completed: Timestamp if completed, 0 otherwise.
     """
     params = {
         "limit": limit,
@@ -44,10 +58,24 @@ async def list_notes(limit: int = 10, page: int = 1) -> List[Dict[str, Any]]:
 @mcp.tool()
 async def get_note(note_id: str) -> Dict[str, Any]:
     """
-    Get a specific note by ID.
+    Retrieve the full content and metadata of a specific note.
+
+    This tool fetches the complete details of a note, including its body content in Markdown format.
+    Use this when you need to read the actual text of a note.
 
     Args:
-        note_id: The ID of the note to retrieve.
+        note_id: The unique identifier (ID) of the note to retrieve.
+
+    Returns:
+        A dictionary containing the note's details:
+        - id: The unique identifier.
+        - title: The title of the note.
+        - body: The content of the note in Markdown.
+        - updated_time: Timestamp of the last update.
+        - created_time: Timestamp of creation.
+        - parent_id: The ID of the notebook containing the note.
+        - is_todo: 1 if the note is a todo, 0 otherwise.
+        - todo_completed: Timestamp if completed, 0 otherwise.
     """
     params = {
         "fields": "id,title,body,updated_time,created_time,parent_id,is_todo,todo_completed"
@@ -59,10 +87,17 @@ async def create_note(title: str, body: str, parent_id: Optional[str] = None) ->
     """
     Create a new note in Joplin.
 
+    This tool creates a new note with the specified title and body content.
+    You can optionally specify which notebook (folder) it should belong to.
+
     Args:
-        title: The title of the note.
-        body: The body of the note (Markdown).
-        parent_id: Optional ID of the notebook (folder) to place the note in.
+        title: The title of the new note.
+        body: The body content of the note in Markdown format.
+        parent_id: The ID of the notebook (folder) where the note should be created.
+                   If not provided, it will be placed in the default notebook.
+
+    Returns:
+        A dictionary containing the metadata of the created note, including its new ID.
     """
     data = {
         "title": title,
@@ -76,14 +111,21 @@ async def create_note(title: str, body: str, parent_id: Optional[str] = None) ->
 @mcp.tool()
 async def update_note(note_id: str, title: Optional[str] = None, body: Optional[str] = None, is_todo: Optional[bool] = None, todo_completed: Optional[bool] = None) -> Dict[str, Any]:
     """
-    Update a note in Joplin.
+    Update an existing note's properties.
+
+    Use this tool to change the title, body, or todo status of a note.
+    Only the provided fields will be updated; others will remain unchanged.
 
     Args:
-        note_id: The ID of the note to update.
-        title: The new title (optional).
-        body: The new body (optional).
-        is_todo: Set whether this is a todo (optional).
-        todo_completed: Set todo completion status (True for completed, False for uncompleted).
+        note_id: The unique identifier of the note to update.
+        title: The new title for the note (optional).
+        body: The new Markdown body content for the note (optional).
+        is_todo: Set to True to make this note a checkbox/todo item, or False to make it a regular note (optional).
+        todo_completed: Set to True to mark the todo as completed, or False to mark it as uncompleted (optional).
+                        This has no effect if the note is not a todo.
+
+    Returns:
+        A dictionary containing the updated properties of the note.
     """
     data = {}
     if title is not None:
@@ -105,9 +147,16 @@ async def delete_note(note_id: str, permanent: bool = False) -> Dict[str, Any]:
     """
     Delete a note from Joplin.
 
+    This tool removes a note. By default, it moves the note to the trash (soft delete),
+    allowing for recovery. You can optionally request a permanent deletion.
+
     Args:
-        note_id: The ID of the note to delete.
-        permanent: If True, permanently deletes the note. If False (default), moves to trash.
+        note_id: The unique identifier of the note to delete.
+        permanent: If True, the note is permanently deleted and cannot be recovered.
+                   If False (default), the note is moved to the trash.
+
+    Returns:
+        A dictionary containing the ID of the deleted note.
     """
     params = {}
     if permanent:
@@ -118,12 +167,19 @@ async def delete_note(note_id: str, permanent: bool = False) -> Dict[str, Any]:
 @mcp.tool()
 async def search_notes(query: str, limit: int = 10, page: int = 1) -> List[Dict[str, Any]]:
     """
-    Search for notes in Joplin.
+    Search for notes using a query string.
+
+    This tool performs a search across all notes in Joplin. It supports Joplin's search syntax.
+    For example, you can search for keywords, tags, or other attributes.
+    See https://joplinapp.org/help/apps/search/ for search syntax details.
 
     Args:
-        query: The search query.
-        limit: Number of results to return.
-        page: Page number.
+        query: The search query string (e.g., "grocery list", "tag:work").
+        limit: The maximum number of results to return (default: 10).
+        page: The page number to retrieve (default: 1).
+
+    Returns:
+        A list of matching notes (metadata only, no body), similar to `list_notes`.
     """
     params = {
         "query": query,
@@ -137,11 +193,22 @@ async def search_notes(query: str, limit: int = 10, page: int = 1) -> List[Dict[
 @mcp.tool()
 async def list_folders(limit: int = 10, page: int = 1) -> List[Dict[str, Any]]:
     """
-    List all folders (notebooks).
+    List all notebooks (folders) in Joplin.
+
+    This tool retrieves a list of notebooks, which can contain notes.
+    Use the `id` from this list as the `parent_id` when creating or moving notes.
 
     Args:
-        limit: Number of folders to return (default 10).
-        page: Page number (default 1).
+        limit: The maximum number of folders to return (default: 10).
+        page: The page number to retrieve (default: 1).
+
+    Returns:
+        A list of dictionaries, where each dictionary represents a notebook (folder) and contains:
+        - id: The unique identifier of the folder.
+        - title: The name of the folder.
+        - updated_time: Timestamp of the last update.
+        - created_time: Timestamp of creation.
+        - parent_id: The ID of the parent folder (if nested), or empty if at the root.
     """
     params = {
         "limit": limit,
